@@ -1,33 +1,79 @@
+mod db_connector;
+
+use db_connector::queries::write_to_db;
+use db_connector::serializers::parse_soil_measurement;
+use db_connector::DbClient;
+use log::{error, info};
 use rumqttc::{AsyncClient, MqttOptions, QoS};
+use std::env;
 use std::process;
 use std::time::Duration;
 
 #[tokio::main]
 async fn main() {
-    let mut mqttoptions = MqttOptions::new("sub-1", "localhost", 1883);
+    // Init logger
+    env_logger::init();
+
+    // Load env
+    dotenv::from_path("subscriber/.env").ok();
+
+    // Db env vars
+    let token = env::var("DB_TOKEN").expect("DB_TOKEN MUST BE SET");
+    let db_address = env::var("DB_ADDRESS").expect("DB_ADDRESS MUST BE SET");
+    let bucket = env::var("BUCKET").expect("BUCKET MUST BE SET");
+
+    // Rumqtt env vars
+    let sub_name = env::var("NAME").expect("NAME MUST BE SET");
+    let topic = env::var("TOPIC").expect("TOPIC MUST BE SET");
+    let broker_address = env::var("BROKER_ADDRESS").expect("BROKER_ADDRESS MUST BE SET");
+    let broker_port = env::var("BROKER_PORT").expect("BROKER_PORT MUST BE SET");
+
+    let mut mqttoptions = MqttOptions::new(
+        sub_name,
+        broker_address,
+        broker_port.parse().expect("Failed to parse BROKER_PORT"),
+    );
     mqttoptions.set_keep_alive(Duration::from_secs(5));
 
     let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
-    match client.subscribe("hello/rumqtt", QoS::AtLeastOnce).await {
+    match client.subscribe(topic, QoS::AtLeastOnce).await {
         Ok(_) => {}
         Err(e) => {
-            eprintln!("Error: {:?}", e);
+            error!("Error: {:?}", e);
             process::exit(1);
         }
     }
 
+    // Init db connector
+    let db_client = DbClient::new(db_address, bucket, token);
+
     loop {
         let notification = eventloop.poll().await;
         match notification {
+            // If message recieved on subscribed topic -> write to db
             Ok(rumqttc::Event::Incoming(rumqttc::Packet::Publish(publish))) => {
-                let message = String::from_utf8(publish.payload.to_vec()).unwrap();
-                println!("Received message topic '{}': {}", publish.topic, message);
+                if let Ok(message) = String::from_utf8(publish.payload.to_vec()) {
+                    match parse_soil_measurement(&message) {
+                        Ok(parsed_message) => {
+                            if let Err(err) =
+                                write_to_db(&db_client.client, parsed_message, &publish.topic).await
+                            {
+                                error!("Error writing to db: {}", err);
+                            } else {
+                                info!("Message written to db");
+                            }
+                        }
+                        Err(err) => error!("Error parsing message: {}", err),
+                    }
+                } else {
+                    error!("Error decoding message payload as utf-8");
+                }
             }
             Ok(_) => {
-                println!("{:?}", notification);
+                info!("{:?}", notification);
             }
             Err(e) => {
-                eprintln!("Connecion error: {:?}", e);
+                error!("Connecion error: {:?}", e);
                 break;
             }
         }

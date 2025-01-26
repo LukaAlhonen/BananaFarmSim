@@ -1,0 +1,9 @@
+[workspace]
+
+members = [
+  "publisher",
+  "subscriber",
+  "models",
+]
+
+resolver = "2"

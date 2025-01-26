@@ -1,3 +1,5 @@
 -- Database
   - InlfuxDB
   - Prob brew install influxdb
+  - Also on dockerhub
+  - Add influxdb to cargo.toml
