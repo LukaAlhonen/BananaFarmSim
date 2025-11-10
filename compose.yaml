@@ -17,5 +17,9 @@ services:
     image: eclipse-mosquitto
     ports:
       - 1883:1883
+    volumes:
+      - $PWD/mosquitto/config:/mosquitto/config
+      - $PWD/mosquitto/log/:/mosquitto/log
+      - $PWD/mosquitto/data:/mosquitto/data
 volumes:
   influxdb-data:
