@@ -7,13 +7,11 @@ services:
       - influxdb3
       - serve
       - --node-id=node0
-      - --object-store=false
+      - --object-store=file
       - --data-dir=/var/lib/influxdb3/data
       - --plugin-dir=/var/lib/influxdb3/plugins
     volumes:
-      - type: bind
-        source: ~/.influxdb3/data
-        target: /var/lib/influxdb3/data
-      - type: bind
-        source: ~/.influxdb3/plugins
-        target: /var/lib/influxdb3/plugins
+      - influxdb-data:/var/lib/influxdb3/data
+    user: "0"
+volumes:
+  influxdb-data:
