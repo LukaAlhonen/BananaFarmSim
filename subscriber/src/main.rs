@@ -9,6 +9,10 @@ use std::env;
 use std::process;
 use std::time::Duration;
 
+fn backoff() {
+    info!("Backing off");
+}
+
 #[tokio::main]
 async fn main() {
     // Init logger
@@ -18,9 +22,10 @@ async fn main() {
     dotenv::from_path("subscriber/.env").ok();
 
     // Db env vars
-    let token = env::var("DB_TOKEN").expect("DB_TOKEN MUST BE SET");
+    let token = env::var("INFLUXDB_TOKEN").expect("DB_TOKEN MUST BE SET");
     let db_address = env::var("DB_ADDRESS").expect("DB_ADDRESS MUST BE SET");
     let bucket = env::var("BUCKET").expect("BUCKET MUST BE SET");
+    let query = env::var("QUERY").expect("QUERY MUST BE SET");
 
     // Rumqtt env vars
     let sub_name = env::var("NAME").expect("NAME MUST BE SET");
@@ -39,13 +44,13 @@ async fn main() {
     match client.subscribe(topic, QoS::AtLeastOnce).await {
         Ok(_) => {}
         Err(e) => {
-            error!("Error: {:?}", e);
+            error!("Error Subscribing: {:?}", e);
             process::exit(1);
         }
     }
 
     // Init db connector
-    let db_client = DbClient::new(db_address, bucket, token);
+    // let db_client = DbClient::new(db_address, bucket, token);
 
     loop {
         let notification = eventloop.poll().await;
@@ -55,13 +60,14 @@ async fn main() {
                 if let Ok(message) = String::from_utf8(publish.payload.to_vec()) {
                     match parse_soil_measurement(&message) {
                         Ok(parsed_message) => {
-                            if let Err(err) =
-                                write_to_db(&db_client.client, parsed_message, &publish.topic).await
-                            {
-                                error!("Error writing to db: {}", err);
-                            } else {
-                                info!("Message written to db");
-                            }
+                            // match write_to_db(&db_client.client, parsed_message, &query).await {
+                            //     Ok(_) => info!("Message written to db"),
+                            //     Err(err) => {
+                            //         info!("Error writing to db: {}", err);
+                            //         backoff();
+                            //     }
+                            // }
+                            info!("{:?}", parsed_message)
                         }
                         Err(err) => error!("Error parsing message: {}", err),
                     }

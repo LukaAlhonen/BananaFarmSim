@@ -1,2 +1,5 @@
 /target
 .env
+.DS_Store
+mosquitto.db
+mosquitto.log
