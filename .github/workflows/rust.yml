@@ -29,8 +29,8 @@ jobs:
           mosquitto -c /tmp/mosquitto.conf -v"
       - name: Start test influxdb3
         run: |
-          docker run -d --name test_db -p 8182:8181 influxdb:3-core && \
-          sh -c "influxdb3 server --without-auth"
+          docker run -d --name test_db -p 8182:8181 influxdb:3-core \
+          influxdb3 serve --without-auth --node-id=node0
       - name: Run tests
         run: cargo test --verbose
       - name: Shutdown containers
