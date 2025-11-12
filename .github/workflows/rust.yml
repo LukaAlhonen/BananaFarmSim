@@ -30,6 +30,6 @@ jobs:
       - name: Start test influxdb3
         run: |
           docker run -d --name test_db -p 8182:8181 influxdb:3-core && \
-          influxdb3 server --without-auth
+          sh -c "influxdb3 server --without-auth"
       - name: Run tests
         run: cargo test --verbose
