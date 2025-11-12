@@ -62,11 +62,12 @@ impl MqttSubscriber {
                     if let Ok(message) = String::from_utf8(publish.payload.to_vec()) {
                         match SoilMoistureMeasurement::from_payload(&message) {
                             // write message to database
-                            // TODO: implement some sort of backoff, so if write was not successfull,
-                            // try again. Should implement custom error type for client so I can know
-                            // if I should try again or not
                             Ok(parsed_message) => {
-                                match self.db_client.write_query(parsed_message).await {
+                                match self
+                                    .db_client
+                                    .write_query_with_retry(&parsed_message, 10)
+                                    .await
+                                {
                                     Ok(_) => info!("Message written to database"),
                                     Err(err) => error!("Error writing to db: {}", err),
                                 }
