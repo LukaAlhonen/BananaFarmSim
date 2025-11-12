@@ -7,7 +7,7 @@ use log::{error, info};
 use sensor::Sensor;
 use std::env;
 use std::time::Duration;
-use tokio::{task, time};
+use tokio::time;
 
 use crate::mqtt_publisher::MqttPublisher;
 
