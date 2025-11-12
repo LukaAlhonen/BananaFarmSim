@@ -1,6 +1,6 @@
 use clap::Parser;
+use influxdb3client::SoilMoistureMeasurement;
 use log::{error, info};
-use models::SoilMoistureMeasurement;
 use rand::Rng;
 use rumqttc::{AsyncClient, EventLoop, MqttOptions, QoS};
 use std::env;
@@ -55,29 +55,27 @@ async fn main() {
         broker_port.parse().expect("FAILED TO PARSE BROKER_PORT"),
     );
 
-    let mut seed = 30.2_f32;
+    let seed = 30.2_f32;
     task::spawn(async move {
-        for _i in 0..100 {
-            let sensor_data = generate_sensor_data(seed, sensor_id.as_str(), location.as_str());
-            let (time, data, unit, measurement_id, sensor_id, location) = sensor_data.get();
-            seed = data.clone();
-            let message = format!(
-                "{{\n \"time\": \"{}\",\n  \"data\": {:.10},\n \"unit\": \"{}\",\n \"id\": \"{}\",\n  \"sensor_id\": \"{}\", \n \"location\": \"{}\"\n}}",
-                time, data, unit, measurement_id, sensor_id, location
-            );
+        loop {
+            let measurement: SoilMoistureMeasurement =
+                generate_sensor_data(seed, sensor_id.as_str(), location.as_str());
 
-            match client
-                .publish(&topic, QoS::AtLeastOnce, false, message.clone())
-                .await
-            {
-                Ok(_) => info!("Published message to {}", &topic),
-                Err(e) => error!("Failed to publish message {:?}: {:?}", &message, e),
+            match measurement.into_payload() {
+                Ok(message) => {
+                    match client
+                        .publish(&topic, QoS::AtLeastOnce, false, message.clone())
+                        .await
+                    {
+                        Ok(_) => info!("Published message to {}", &topic),
+                        Err(e) => error!("Failed to publish message {:?}: {:?}", &message, e),
+                    }
+                    time::sleep(Duration::from_millis(60000)).await;
+                }
+                Err(err) => error!("Error parsing measurement: {}", err),
             }
-            time::sleep(Duration::from_millis(60000)).await;
         }
     });
-
-    info!("Finnished publishing!");
 
     loop {
         match eventloop.poll().await {
