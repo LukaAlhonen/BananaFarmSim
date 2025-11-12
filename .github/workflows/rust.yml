@@ -33,3 +33,8 @@ jobs:
           sh -c "influxdb3 server --without-auth"
       - name: Run tests
         run: cargo test --verbose
+      - name: Shutdown containers
+        if: always()
+        run: |
+          docker stop test_broker test_db || true
+          docker rm test_broker test_db || true
