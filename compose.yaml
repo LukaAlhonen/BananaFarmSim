@@ -1,5 +1,6 @@
 services:
   db:
+    container_name: influx_db
     image: influxdb:3-core
     ports:
       - 8181:8181
@@ -14,6 +15,7 @@ services:
       - influxdb-data:/var/lib/influxdb3/data
     user: "0"
   broker:
+    container_name: mosquitto
     image: eclipse-mosquitto
     ports:
       - 1883:1883

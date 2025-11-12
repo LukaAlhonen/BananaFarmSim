@@ -4,9 +4,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_write_query_to_db() {
+        // OBS! local test db needs to be running for this test to work
         let client = InfluxDB3Client::new(
-            "http://ubuntubox.local:8181/api/v3/write_lp?db=bananafarm_test",
-            "apiv3_tT5QvrwyjX7JVslrwfvJkZ-OqQVaQINPyEazla9S-DMM1xdSkGkZFN58nLMCeiIyV82eR0x42Jl436fq3IKl-Q",
+            "http://localhost:8182/api/v3/write_lp?db=test_db",
+            "no_auth",
             "soil_moisture_readings",
         );
 

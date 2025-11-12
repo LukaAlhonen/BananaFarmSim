@@ -3,7 +3,7 @@ use serde_json::Error as SerdeError;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SoilMoistureMeasurement {
     time: i64,
     data: f32,
