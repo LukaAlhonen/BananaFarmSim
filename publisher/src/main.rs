@@ -7,7 +7,7 @@ use log::{error, info};
 use sensor::Sensor;
 use std::env;
 use std::time::Duration;
-use tokio::time;
+use tokio::{task, time};
 
 use crate::mqtt_publisher::MqttPublisher;
 
@@ -38,7 +38,7 @@ async fn main() {
     let broker_port = env::var("BROKER_PORT").expect("BROKER_PORT MUST BE SET");
     let topic = env::var("TOPIC").expect("TOPIC MUST BE SET");
 
-    let mut client = MqttPublisher::new(
+    let client = MqttPublisher::new(
         name,
         broker_address,
         broker_port.parse().expect("Failed to parse broker port"),
@@ -55,18 +55,12 @@ async fn main() {
         match measurement.into_payload() {
             Ok(message) => match &client.publish(&topic, &message).await {
                 Ok(_) => info!("Published message to {}", &topic),
-                Err(e) => error!("Failed to publish message {:?}: {:?}", &message, e),
+                Err(e) => error!("Error when publishing message: {}", e.to_string()),
             },
             Err(err) => error!("Error parsing measurement: {}", err),
         }
 
-        // poll before after sending
-        match &client.poll().await {
-            Ok(event) => info!("Received: {:?}", event),
-            Err(err) => error!("Connection error: {}", err),
-        }
-
         // wait for 1 minute before sending new message
-        time::sleep(Duration::from_millis(60000)).await;
+        time::sleep(Duration::from_millis(6000)).await;
     }
 }

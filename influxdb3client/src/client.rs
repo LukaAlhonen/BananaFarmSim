@@ -24,7 +24,7 @@ impl InfluxDB3Client {
     pub async fn write_query(
         &self,
         measurement: &SoilMoistureMeasurement,
-    ) -> Result<bool, Box<dyn std::error::Error>> {
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         let query = measurement.into_query_string(&self.table);
         let auth_header = format!("Bearer {}", &self.token);
 
@@ -44,7 +44,7 @@ impl InfluxDB3Client {
         &self,
         measurement: &SoilMoistureMeasurement,
         max_retries: u8,
-    ) -> Result<bool, Box<dyn std::error::Error>> {
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         let mut delay = Duration::from_secs(1);
         let mut retries = 1;
 
