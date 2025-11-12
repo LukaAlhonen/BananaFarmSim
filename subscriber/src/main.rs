@@ -1,66 +1,68 @@
-mod db_connector;
+pub mod mqtt_subscriber;
 
-use db_connector::queries::write_to_db;
-use db_connector::serializers::parse_soil_measurement;
-use db_connector::DbClient;
+use influxdb3client::{InfluxDB3Client, SoilMoistureMeasurement};
 use log::{error, info};
-use rumqttc::{AsyncClient, MqttOptions, QoS};
+use mqtt_subscriber::{MqttSubscriber, SubscriberParams};
 use std::env;
-use std::process;
-use std::time::Duration;
+use tokio::sync::mpsc;
 
 #[tokio::main]
 async fn main() {
-    // Init logger
-    env_logger::init();
-
     // Load env
     dotenv::from_path("subscriber/.env").ok();
 
     // Db env vars
-    let token = env::var("DB_TOKEN").expect("DB_TOKEN MUST BE SET");
+    let token = env::var("INFLUXDB_TOKEN").expect("DB_TOKEN MUST BE SET");
     let db_address = env::var("DB_ADDRESS").expect("DB_ADDRESS MUST BE SET");
-    let bucket = env::var("BUCKET").expect("BUCKET MUST BE SET");
+    let table = env::var("TABLE").expect("TABLE MUST BE SET");
 
     // Rumqtt env vars
-    let sub_name = env::var("NAME").expect("NAME MUST BE SET");
+    let name = env::var("NAME").expect("NAME MUST BE SET");
     let topic = env::var("TOPIC").expect("TOPIC MUST BE SET");
     let broker_address = env::var("BROKER_ADDRESS").expect("BROKER_ADDRESS MUST BE SET");
     let broker_port = env::var("BROKER_PORT").expect("BROKER_PORT MUST BE SET");
 
-    let mut mqttoptions = MqttOptions::new(
-        sub_name,
+    let db_client = InfluxDB3Client::new(db_address, token, table);
+    let mut client = MqttSubscriber::new(SubscriberParams {
+        name,
         broker_address,
-        broker_port.parse().expect("Failed to parse BROKER_PORT"),
-    );
-    mqttoptions.set_keep_alive(Duration::from_secs(5));
+        broker_port: broker_port.parse().expect("Failed to parse broker port"),
+    });
+    env_logger::init();
 
-    let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
-    match client.subscribe(topic, QoS::AtLeastOnce).await {
-        Ok(_) => {}
-        Err(e) => {
-            error!("Error: {:?}", e);
-            process::exit(1);
-        }
+    match client.subscribe(&topic).await {
+        Ok(_) => info!("subscribed to topic: {}", &topic),
+        Err(err) => error!("error subscribing to topic {}: {}", &topic, err),
     }
 
-    // Init db connector
-    let db_client = DbClient::new(db_address, bucket, token);
+    if let Ok(event) = client.poll().await {
+        info!("After subscribe got event: {:?}", event);
+    }
+
+    let (tx, mut rx) = mpsc::channel::<SoilMoistureMeasurement>(100);
+
+    // separate thread for writing to database
+    tokio::spawn(async move {
+        while let Some(measurement) = rx.recv().await {
+            // write to db
+            match db_client.write_query_with_retry(&measurement, 5).await {
+                Ok(_) => info!("message written to db"),
+                Err(err) => error!("error writing message to db: {}", err),
+            }
+        }
+    });
 
     loop {
-        let notification = eventloop.poll().await;
+        let notification = client.poll().await;
         match notification {
             // If message recieved on subscribed topic -> write to db
-            Ok(rumqttc::Event::Incoming(rumqttc::Packet::Publish(publish))) => {
+            Ok(rumqttc::v5::Event::Incoming(rumqttc::v5::Incoming::Publish(publish))) => {
                 if let Ok(message) = String::from_utf8(publish.payload.to_vec()) {
-                    match parse_soil_measurement(&message) {
+                    match SoilMoistureMeasurement::from_payload(&message) {
+                        // write message to database
                         Ok(parsed_message) => {
-                            if let Err(err) =
-                                write_to_db(&db_client.client, parsed_message, &publish.topic).await
-                            {
-                                error!("Error writing to db: {}", err);
-                            } else {
-                                info!("Message written to db");
+                            if let Err(err) = tx.send(parsed_message).await {
+                                error!("Error sending message to mpsc channel: {}", err)
                             }
                         }
                         Err(err) => error!("Error parsing message: {}", err),
