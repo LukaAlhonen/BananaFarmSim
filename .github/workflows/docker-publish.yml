@@ -78,7 +78,7 @@ jobs:
           context: ./publisher
           file: ./publisher/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:publisher-${ github.sha }
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:publisher-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -91,7 +91,7 @@ jobs:
           context: ./subscriber
           file: ./subscriber/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:subscriber-${ github.sha }
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:subscriber-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
