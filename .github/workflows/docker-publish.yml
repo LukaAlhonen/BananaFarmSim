@@ -19,10 +19,10 @@ env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository | lower }}
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build:
+  docker-build:
     runs-on: self-hosted
     permissions:
       contents: read
@@ -34,6 +34,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - id: downcaserepo
+        uses: ASzc/change-string-case-action@v6
+        with:
+          string: ${{ env.IMAGE_NAME }}
 
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
@@ -65,7 +70,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ steps.string.outputs.lowercase }}
 
       # Build and push Docker images with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
@@ -78,7 +83,7 @@ jobs:
           context: ./publisher
           file: ./publisher/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:publisher-${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ steps.string.outputs.lowercase }}:publisher-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -91,7 +96,7 @@ jobs:
           context: ./subscriber
           file: ./subscriber/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:subscriber-${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ steps.string.outputs.lowercase }}:subscriber-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -106,7 +111,7 @@ jobs:
       - name: Sign Publisher
         if: ${{ github.event_name != 'pull_request' }}
         env:
-          IMAGE_TAG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:publisher-${{ github.sha }}
+          IMAGE_TAG: ${{ env.REGISTRY }}/${{ steps.string.outputs.lowercase }}:publisher-${{ github.sha }}
           DIGEST: ${{ steps.build-and-push-publisher.outputs.digest }}
         run: echo "${IMAGE_TAG}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
@@ -114,6 +119,6 @@ jobs:
       - name: Sign Subscriber
         if: ${{ github.event_name != 'pull_request' }}
         env:
-          IMAGE_TAG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:subscriber-${{ github.sha }}
+          IMAGE_TAG: ${{ env.REGISTRY }}/${{ steps.string.outputs.lowercase }}:subscriber-${{ github.sha }}
           DIGEST: ${{ steps.build-and-push-subscriber.outputs.digest }}
         run: echo "${IMAGE_TAG}" | xargs -I {} cosign sign --yes {}@${DIGEST}
