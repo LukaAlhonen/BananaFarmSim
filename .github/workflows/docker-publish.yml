@@ -80,7 +80,7 @@ jobs:
         id: build-and-push-publisher
         uses: docker/build-push-action@v5
         with:
-          context: ./publisher
+          context: .
           file: ./publisher/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ env.REGISTRY }}/${{ steps.downcaserepo.outputs.lowercase }}:publisher-${{ github.sha }}
@@ -93,7 +93,7 @@ jobs:
         id: build-and-push-subscriber
         uses: docker/build-push-action@v5
         with:
-          context: ./subscriber
+          context: .
           file: ./subscriber/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ env.REGISTRY }}/${{ steps.downcaserepo.outputs.lowercase }}:subscriber-${{ github.sha }}
