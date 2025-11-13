@@ -82,6 +82,7 @@ jobs:
         with:
           context: .
           file: ./publisher/Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ env.REGISTRY }}/${{ steps.downcaserepo.outputs.lowercase }}:publisher-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -95,6 +96,7 @@ jobs:
         with:
           context: .
           file: ./subscriber/Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ env.REGISTRY }}/${{ steps.downcaserepo.outputs.lowercase }}:subscriber-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
