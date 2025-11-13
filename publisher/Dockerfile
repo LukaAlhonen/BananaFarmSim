@@ -7,7 +7,8 @@ RUN rustup target add aarch64-unknown-linux-musl
 
 COPY Cargo.toml Cargo.lock ./
 
-COPY models ./models
+COPY integration ./integration
+COPY influxdb3client ./influxdb3client
 COPY subscriber ./subscriber
 COPY publisher ./publisher
 
