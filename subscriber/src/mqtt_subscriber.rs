@@ -1,7 +1,9 @@
 use std::time::Duration;
 
+use log::{error, info};
 use rumqttc::v5::{
-    mqttbytes::QoS, AsyncClient, ClientError, ConnectionError, Event, EventLoop, MqttOptions,
+    mqttbytes::QoS, AsyncClient, ClientError, ConnectionError, Event, EventLoop, Incoming,
+    MqttOptions,
 };
 
 pub struct MqttSubscriber {
@@ -31,6 +33,27 @@ impl MqttSubscriber {
 
     pub async fn subscribe(&self, topic: &str) -> Result<(), ClientError> {
         self.client.subscribe(topic, QoS::AtLeastOnce).await?;
+
+        Ok(())
+    }
+
+    // subscribes to a topic and waits for a suback from the broker
+    pub async fn subscribe_ack(&mut self, topic: &str) -> Result<(), ClientError> {
+        self.subscribe(topic).await?;
+
+        // loop untill suback recieved
+        loop {
+            match self.poll().await {
+                Ok(Event::Incoming(Incoming::SubAck(_))) => {
+                    info!("subscribed to {}", topic);
+                    break;
+                }
+                Ok(_) => {}
+                Err(err) => {
+                    error!("Error subscribing: {}", err)
+                }
+            }
+        }
 
         Ok(())
     }

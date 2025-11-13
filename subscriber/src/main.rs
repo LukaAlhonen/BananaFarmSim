@@ -30,7 +30,7 @@ async fn main() {
     });
     env_logger::init();
 
-    match client.subscribe(&topic).await {
+    match client.subscribe_ack(&topic).await {
         Ok(_) => info!("subscribed to topic: {}", &topic),
         Err(err) => error!("error subscribing to topic {}: {}", &topic, err),
     }

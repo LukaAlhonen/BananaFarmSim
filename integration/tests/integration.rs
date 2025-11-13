@@ -21,7 +21,7 @@ mod tests {
         let sensor = Sensor::new();
 
         // subscribe and init mpsc channel
-        sub_client.subscribe("test/topic").await.unwrap();
+        sub_client.subscribe_ack("test/topic").await.unwrap();
         let (tx, mut rx) = mpsc::channel::<SoilMoistureMeasurement>(100);
 
         // start polling for messages
