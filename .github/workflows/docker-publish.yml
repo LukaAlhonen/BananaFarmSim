@@ -74,8 +74,6 @@ jobs:
       - name: Determine tags
         id: tags
         run: |
-          IMAGE="${REGISTRY}/${{ steps.downcaserepo.outputs.lowercase }}"
-
           if [[ "${GITHUB_REF}"  == refs/heads/main ]]; then
             echo "tag=latest" >> $GITHUB_OUTPUT
           fi
@@ -125,7 +123,7 @@ jobs:
       - name: Sign Publisher
         if: ${{ github.event_name != 'pull_request' }}
         env:
-          IMAGE_TAG: ${{ env.REGISTRY }}/${{ steps.downcaserepo.outputs.lowercase }}:publisher:${{ steps.tags.outputs.tag }}
+          IMAGE_TAG: ${{ env.REGISTRY }}/${{ steps.downcaserepo.outputs.lowercase }}:publisher-${{ steps.tags.outputs.tag }}
           DIGEST: ${{ steps.build-and-push-publisher.outputs.digest }}
         run: echo "${IMAGE_TAG}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
@@ -133,6 +131,6 @@ jobs:
       - name: Sign Subscriber
         if: ${{ github.event_name != 'pull_request' }}
         env:
-          IMAGE_TAG: ${{ env.REGISTRY }}/${{ steps.downcaserepo.outputs.lowercase }}:subscriber:${{ steps.tags.outputs.tag }}
+          IMAGE_TAG: ${{ env.REGISTRY }}/${{ steps.downcaserepo.outputs.lowercase }}:subscriber-${{ steps.tags.outputs.tag }}
           DIGEST: ${{ steps.build-and-push-subscriber.outputs.digest }}
         run: echo "${IMAGE_TAG}" | xargs -I {} cosign sign --yes {}@${DIGEST}
