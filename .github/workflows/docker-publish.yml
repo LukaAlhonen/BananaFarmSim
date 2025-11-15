@@ -76,15 +76,15 @@ jobs:
         run: |
           IMAGE="${REGISTRY}/${{ steps.downcaserepo.outputs.lowercase }}"
 
-          if [[ "${GITHUB_REF}"  == refs/heads/main ]] then
+          if [[ "${GITHUB_REF}"  == refs/heads/main ]]; then
             echo "tag=latest" >> $GITHUB_OUTPUT
           fi
 
-          if [[ "${GITHUB_REF}"  == refs/heads/dev ]] then
+          if [[ "${GITHUB_REF}"  == refs/heads/dev ]]; then
             echo "tag=beta" >> $GITHUB_OUTPUT
           fi
 
-          if [[ "${GITHUB_REF}"  == refs/tags/v* ]] then
+          if [[ "${GITHUB_REF}"  == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF#refs/tags/v}"
             echo "tag=${VERSION}" >> $GITHUB_OUTPUT
             echo "is_release=true"
@@ -102,7 +102,7 @@ jobs:
           file: ./publisher/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ steps.downcaserepo.outputs.lowercase }}:publisher:${{ steps.tags.outputs.tag }}
+          tags: ${{ env.REGISTRY }}/${{ steps.downcaserepo.outputs.lowercase }}:publisher-${{ steps.tags.outputs.tag }}
 
       # Subscriber
       - name: Build and push Subscriber
@@ -113,7 +113,7 @@ jobs:
           file: ./subscriber/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ steps.downcaserepo.outputs.lowercase }}:subscriber:${{ steps.tags.outputs.tag }}
+          tags: ${{ env.REGISTRY }}/${{ steps.downcaserepo.outputs.lowercase }}:subscriber-${{ steps.tags.outputs.tag }}
 
       # Sign the resulting Docker images' digests except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
