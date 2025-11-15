@@ -76,7 +76,7 @@ jobs:
         run: |
           IMAGE="${REGISTRY}/${{ steps.downcaserepo.outputs.lowercase }}"
 
-          if [[ "${GITHUB_REF}"  == refs/heads/main ]]; then
+          if [[ "${GITHUB_REF}"  == refs/heads/main ]] then
             echo "tag=latest" >> $GITHUB_OUTPUT
           fi
 
