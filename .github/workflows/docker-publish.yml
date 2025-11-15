@@ -80,7 +80,7 @@ jobs:
             echo "tag=latest" >> $GITHUB_OUTPUT
           fi
 
-          if [[ "${GITHUB_REF}"  == refs/heads/dev ]]; then
+          if [[ "${GITHUB_REF}"  == refs/heads/dev ]] then
             echo "tag=beta" >> $GITHUB_OUTPUT
           fi
 
